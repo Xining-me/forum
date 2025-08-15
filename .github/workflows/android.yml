@@ -1,55 +1,125 @@
-name: Android Build
+name: Android CI - Gradle build
 
 on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'build type (debug or release)'
+        required: false
+        default: 'debug'
   push:
     branches:
       - main
-  pull_request:
+
+env:
+  NODE_VERSION: 18
+  ANDROID_API_LEVEL: 33
+  BUILD_TOOLS_VERSION: '33.0.2'
 
 jobs:
-  build-android:
+  android-build:
     runs-on: ubuntu-latest
-    env:
-      ANDROID_HOME: ${{ github.workspace }}/android-sdk
-      PATH: ${{ github.workspace }}/android-sdk/cmdline-tools/latest/bin:${{ github.workspace }}/android-sdk/platform-tools:$PATH
+    timeout-minutes: 120
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Setup JDK 17
-      uses: actions/setup-java@v3
-      with:
-        distribution: temurin
-        java-version: 17
+      - name: Show repository root (debug)
+        run: ls -la
 
-    - name: Install Gradle and generate Wrapper
-      run: |
-        wget https://services.gradle.org/distributions/gradle-7.5.1-bin.zip -O gradle.zip
-        unzip gradle.zip -d $HOME/gradle
-        export PATH=$HOME/gradle/gradle-7.5.1/bin:$PATH
-        gradle -v
-        mkdir -p android
-        cd android
-        gradle wrapper --gradle-version 7.5.1
-        ls -l gradle/wrapper/
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
-    - name: Install Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            npm-cache-${{ runner.os }}-
 
-    - name: Install npm dependencies
-      run: npm install
+      - name: Install npm dependencies
+        run: npm ci
 
-    - name: Build Android APK
-      run: |
-        cd android
-        chmod +x gradlew
-        ./gradlew assembleRelease
+      - name: Setup Java (Temurin 11)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
 
-    - name: Upload APK artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: app-release-apk
-        path: android/app/build/outputs/apk/release/app-release.apk
+      - name: Install Android SDK components
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: ${{ env.ANDROID_API_LEVEL }}
+          build-tools: ${{ env.BUILD_TOOLS_VERSION }}
+          components: "platform-tools,platforms;android-${{ env.ANDROID_API_LEVEL }},build-tools;${{ env.BUILD_TOOLS_VERSION }}"
+        # android-actions/setup-android sets ANDROID_SDK_ROOT
+
+      - name: Accept Android SDK licenses
+        env:
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+        run: |
+          # sdkmanager location may vary; try common locations
+          set -e
+          if [ -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          elif [ -x "$ANDROID_SDK_ROOT/tools/bin/sdkmanager" ]; then
+            yes | "$ANDROID_SDK_ROOT/tools/bin/sdkmanager" --licenses || true
+          else
+            echo "sdkmanager not found; continuing"
+          fi
+
+      - name: Ensure android/gradlew exists
+        run: |
+          if [ ! -f android/gradlew ]; then
+            echo "android/gradlew not found. Ensure android/gradlew exists in repo or run 'gradle wrapper' locally and commit wrapper files."
+            ls -la android || true
+            exit 1
+          fi
+
+      - name: Fix gradlew permissions (make executable)
+        run: |
+          git update-index --chmod=+x android/gradlew || true
+          chmod +x android/gradlew || true
+          ls -la android/gradlew
+
+      - name: Prepare JS bundle for Android
+        # Ensure assets dir exists then create android bundle (index.js entry)
+        run: |
+          set -e
+          mkdir -p android/app/src/main/assets
+          mkdir -p android/app/src/main/res
+          # bundle entry-file is index.js by default. adjust if your entry is different.
+          npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res || true
+        env:
+          NODE_ENV: production
+
+      - name: Grant execute and run Gradle build
+        working-directory: android
+        run: |
+          set -e
+          ./gradlew --no-daemon --version
+          if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
+            echo "Building RELEASE (you must configure keystore/signing in android/gradle.properties or CI secrets)"
+            ./gradlew clean assembleRelease --stacktrace --no-daemon
+          else
+            echo "Building DEBUG"
+            ./gradlew clean assembleDebug --stacktrace --no-daemon
+          fi
+
+      - name: Find APK(s)
+        run: |
+          echo "Artifacts under android/app/build/outputs/apk/:"
+          find android/app/build/outputs/apk -type f -name "*.apk" -print || true
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: |
+            android/app/build/outputs/apk/**/*.apk

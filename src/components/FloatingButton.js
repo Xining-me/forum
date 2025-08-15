@@ -1,26 +1,50 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet } from 'react-native';
+import { TouchableOpacity, StyleSheet, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
-export default function FloatingButton({ onPress }) {
+const FloatingButton = () => {
+  const navigation = useNavigation();
+
+  // 导航到发布内容页面
+  const handlePress = () => {
+    navigation.navigate('Compose');
+  };
+
   return (
-    <TouchableOpacity style={styles.button} onPress={onPress}>
-      <Ionicons name="add" size={28} color="#fff" />
+    <TouchableOpacity
+      style={styles.fab}
+      onPress={handlePress}
+      activeOpacity={0.8}
+    >
+      <View style={styles.iconContainer}>
+        <Ionicons name="pencil-outline" size={24} color="#fff" />
+      </View>
     </TouchableOpacity>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  button: {
+  fab: {
     position: 'absolute',
-    right: 20,
-    bottom: 20,
-    backgroundColor: '#1DA1F2',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    right: 24,
+    bottom: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#1DA1F2', // Twitter蓝
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 3
-  }
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  iconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
+
+export default FloatingButton;

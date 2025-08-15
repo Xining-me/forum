@@ -25,3 +25,15 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build
 
+- name: Ensure gradlew exists
+  run: ls -la android || true
+
+- name: Force git mark executable (if present) then chmod
+  run: |
+    if [ -f android/gradlew ]; then
+      git update-index --chmod=+x android/gradlew || true
+      chmod +x android/gradlew || true
+    else
+      echo "android/gradlew not found"
+      exit 1
+    fi

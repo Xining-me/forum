@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
-if [ -x ./gradlew ]; then
-  exec ./gradlew "$@"
+APP_HOME=$(cd "`dirname "$0"`" && pwd)
+CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+JAVA_CMD="java"
+if [ -n "$JAVA_HOME" ] ; then
+    JAVA_CMD="$JAVA_HOME/bin/java"
 fi
-echo "Gradle wrapper not present. Calling gradle directly (may fail)." 
-gradle "$@"
+exec "$JAVA_CMD" -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"

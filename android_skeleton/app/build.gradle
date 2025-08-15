@@ -28,3 +28,20 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation 'com.google.android.material:material:1.6.1'
 }
+buildscript {
+    repositories {
+        mavenCentral()
+        google()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:7.4.2")
+    }
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+        google()
+        maven { url 'https://jitpack.io' }
+    }
+}

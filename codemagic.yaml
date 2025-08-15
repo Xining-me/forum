@@ -17,14 +17,15 @@ workflows:
         FLUTTER_VERSION: 3.16.0
         COCOAPODS_VERSION: 1.14.3
 
-      # 缓存配置 - 严格遵循平台规范
+      # 修正后的缓存配置 - 完全符合平台规范
       cache:
-        - ~/.gradle/caches
-        - ~/.gradle/wrapper
-        - ~/.npm
-        - ~/.cocoapods
-        - $FLUTTER_ROOT/.pub-cache
-        - ios/Pods
+        paths:
+          - ~/.gradle/caches
+          - ~/.gradle/wrapper
+          - ~/.npm
+          - ~/.cocoapods
+          - $FLUTTER_ROOT/.pub-cache
+          - ios/Pods
 
   # Android构建流程
   android-build:
@@ -149,4 +150,3 @@ workflows:
     extends:
       - android-build
       - ios-build
-

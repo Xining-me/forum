@@ -31,7 +31,7 @@ jobs:
         run: |
           echo "Workdir: $(pwd)"
           ls -la
-          ls -la android || true
+          ls -la android_skeleton || true  # 修改路径
           ls -la package.json package-lock.json yarn.lock || true
           node -v || true
           npm -v || true
@@ -123,35 +123,35 @@ jobs:
             echo "sdkmanager not found; continuing"
           fi
 
-      - name: Ensure android/gradlew exists
+      - name: Ensure android_skeleton/gradlew exists
         run: |
-          if [ ! -f android/gradlew ]; then
-            echo "ERROR: android/gradlew not found. Ensure gradle wrapper files committed under android/."
-            ls -la android || true
+          if [ ! -f android_skeleton/gradlew ]; then
+            echo "ERROR: android_skeleton/gradlew not found. Ensure gradle wrapper files committed under android_skeleton/."
+            ls -la android_skeleton || true
             exit 1
           fi
 
       - name: Fix gradlew permissions (make executable)
         run: |
-          git update-index --chmod=+x android/gradlew || true
-          chmod +x android/gradlew || true
-          ls -la android/gradlew
+          git update-index --chmod=+x android_skeleton/gradlew || true
+          chmod +x android_skeleton/gradlew || true
+          ls -la android_skeleton/gradlew
 
       - name: Prepare JS bundle for Android
         run: |
           set -e
-          mkdir -p android/app/src/main/assets
-          mkdir -p android/app/src/main/res
+          mkdir -p android_skeleton/app/src/main/assets
+          mkdir -p android_skeleton/app/src/main/res
           if [ -f index.js ]; then
-            npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res || true
+            npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android_skeleton/app/src/main/assets/index.android.bundle --assets-dest android_skeleton/app/src/main/res || true
           else
-            echo "index.js not found. Ensure JS bundle is present at android/app/src/main/assets/index.android.bundle"
+            echo "index.js not found. Ensure JS bundle is present at android_skeleton/app/src/main/assets/index.android.bundle"
           fi
         env:
           NODE_ENV: production
 
       - name: Build with Gradle
-        working-directory: android
+        working-directory: android_skeleton
         run: |
           set -e
           ./gradlew --version || true
@@ -165,11 +165,11 @@ jobs:
 
       - name: Show built APKs
         run: |
-          echo "Artifacts under android/app/build/outputs/apk/:"
-          find android/app/build/outputs/apk -type f -name "*.apk" -print || true
+          echo "Artifacts under android_skeleton/app/build/outputs/apk/:"
+          find android_skeleton/app/build/outputs/apk -type f -name "*.apk" -print || true
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: android/app/build/outputs/apk/**/*.apk
+          path: android_skeleton/app/build/outputs/apk/**/*.apk

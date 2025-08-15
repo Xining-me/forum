@@ -4,10 +4,8 @@ workflows:
     max_build_duration: 120
     environment:
       node: 18  # 匹配项目使用的Node.js版本
-      java: 17  # 匹配项目Java版本（与GitHub Actions一致）
-      android:
-        buildToolsVersion: "33.0.2"  # 匹配项目build.gradle中的版本
-        sdkManagerPath: $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager
+      java: 17  # 匹配项目Java版本
+      # 移除了不允许的android额外字段配置
     triggering:
       events:
         - push
@@ -25,6 +23,7 @@ workflows:
       - name: Cache npm dependencies
         script: |
           npm cache verify
+        # 修正缓存配置的缩进和格式
         cache:
           key: npm-${{ hashFiles('**/package-lock.json') }}
           paths:
@@ -59,5 +58,13 @@ workflows:
           # 构建debug版本（如需release，需配置签名）
           ./gradlew clean assembleDebug --stacktrace
 
+    # 添加Gradle缓存以加速构建
+    cache:
+      paths:
+        - ~/.gradle/caches
+        - ~/.gradle/wrapper
+        - ~/.android/build-cache
+        
     artifacts:
       - android/app/build/outputs/apk/**/*.apk  # 上传构建产物
+

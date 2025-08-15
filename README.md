@@ -1,5 +1,5 @@
 
-# Mini Twitter RN
+# Mini Twitter 
 
 仿推特交互的安卓前端（Expo + React Native）。本项目仅包含前端，数据本地持久化，便于后续替换为真实 API。
 

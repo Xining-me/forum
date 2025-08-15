@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+if [ -x ./gradlew ]; then
+  exec ./gradlew "$@"
+fi
+echo "Gradle wrapper not present. Calling gradle directly (may fail)." 
+gradle "$@"

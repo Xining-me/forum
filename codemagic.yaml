@@ -8,19 +8,14 @@ workflows:
       node: 20
       flutter: none
       xcode: none
-      android:
-        gradle: 7.5.1
-    scripts:
-      - name: Checkout repository
-        script: |
-          echo "Code is checked out automatically by Codemagic"
 
+    scripts:
       - name: Install Gradle Wrapper
         script: |
           mkdir -p android
           cd android
           wget https://services.gradle.org/distributions/gradle-7.5.1-bin.zip -O gradle.zip
-          unzip gradle.zip -d $HOME/gradle
+          unzip -q gradle.zip -d $HOME/gradle
           export PATH=$HOME/gradle/gradle-7.5.1/bin:$PATH
           gradle wrapper --gradle-version 7.5.1
           cd ..
